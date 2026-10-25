@@ -39,3 +39,30 @@ def health_check():
 @app.get("/version")
 def get_version():
     return {"version": APP_VERSION}
+
+# --- Бизнес-маршруты ---
+
+@app.post("/books", status_code=201)
+def add_book(book: BookCreate):
+    new_id = str(uuid.uuid4())
+    new_book = Book(
+        id=new_id,
+        added_at=datetime.now().isoformat(),
+        **book.model_dump()
+    )
+    books_db.append(new_book)
+    logger.info(f"Добавлена новая книга: '{new_book.title}' автор {new_book.author}")
+    return new_book
+
+@app.get("/books")
+def get_all_books():
+    logger.info(f"Запрошен список всех книг. Всего в каталоге: {len(books_db)}")
+    return {"books": books_db}
+
+@app.get("/books/{book_id}")
+def get_book_by_id(book_id: str):
+    for book in books_db:
+        if book.id == book_id:
+            return book
+    logger.warning(f"Книга с ID {book_id} не найдена.")
+    raise HTTPException(status_code=404, detail="Книга не найдена")
